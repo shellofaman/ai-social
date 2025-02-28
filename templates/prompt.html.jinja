@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Prompt</title>
+</head>
+
+<body>
+  <h1>Edit Prompt</h1>
+  <input type="hidden" name="id" data-id="{{ prompt.id }}" />
+  <div>
+    <label for="prompt">Prompt</label>
+    <textarea id="prompt" name="prompt">{{ prompt.text }}</textarea>
+  </div>
+  <div>
+    <button type="button">Load images</button>
+  </div>
+</body>
+
+</html>

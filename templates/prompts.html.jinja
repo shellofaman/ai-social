@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="{{ url_for('static', filename='index.js') }}" defer></script>
+  <title>Prompts</title>
+</head>
+
+<body>
+  <h1>Prompts</h1>
+  <ul>
+    {% for prompt in prompts %}
+    <li>
+      <p>{{ prompt.text }}</p>
+      <button type="button" class="image-button" data-id='{{ prompt.id }}' data-prompt='{{ prompt.text }}'>Generate Image</button>
+      <a href='/prompt/{{ prompt.id }}'>Manage prompt</a>
+    </li>
+    {% endfor %}
+  </ul>
+</body>
+
+</html>
