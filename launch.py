@@ -46,13 +46,13 @@ def generate_prompts():
     
 @app.post("/image")
 def generate_image():
-    if not request.form["prompt"] and not request.form["prompt_id"]:
+    if not request.form["prompt"] and not int(request.form["prompt_id"]):
         return {"message": "Bad request", "status": 400}
     try:
         if not TESTING:
             image_url = request_image(request.form["prompt"])
             filename = save_image(image_url)
-            write_image_db(filename, request.form["prompt_id"])
+            write_image_db(filename, int(request.form["prompt_id"]))
             return {"image": filename}
         else:
             return {"image": "default-image.png"}
@@ -66,7 +66,7 @@ def show_prompt(prompt_id):
     
     try:
         prompt = retrieve_prompt(prompt_id)
-        return prompt
+        return render_template("prompt.html.jinja", prompt=prompt)
     except:
         return {"message": "An error occurred", "status": 500}
 
@@ -182,7 +182,7 @@ def retrieve_images(prompt_id):
             (prompt_id)
         )
         rows = query.fetchall()
-        return [{"id":r["rowid"],"image":r["url"]} for r in rows]
+        return [{"id":r["rowid"],"url":r["url"]} for r in rows]
     except Exception as e:
         print(e)
         raise Exception("Exception in retrieve_images")

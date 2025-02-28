@@ -4,18 +4,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="{{ url_for('static', filename='js/prompt.js') }}"></script>
   <title>Edit Prompt</title>
 </head>
 
 <body>
   <h1>Edit Prompt</h1>
-  <input type="hidden" name="id" data-id="{{ prompt.id }}" />
   <div>
     <label for="prompt">Prompt</label>
-    <textarea id="prompt" name="prompt">{{ prompt.text }}</textarea>
+    <br />
+    <textarea id="prompt" name="prompt" rows="10" columns="125">{{ prompt.text }}</textarea>
   </div>
+  <button type="button" data-id="{{ prompt.id }}">Save</button>
   <div>
-    <button type="button">Load images</button>
+    <button type="button" onclick="loadImages('{{ prompt.id }}')">Load images</button>
   </div>
 </body>
 
