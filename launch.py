@@ -4,6 +4,8 @@ from flask import request
 from openai import OpenAI
 from pydantic import BaseModel
 from flask import g
+from flask import json
+from werkzeug.exceptions import HTTPException
 import sqlite3
 import os
 import datetime
@@ -39,51 +41,64 @@ def show_prompts():
 def generate_prompts():
     try:
         if not TESTING:
-            request_prompts()
-        return {"message": "success", "status": 201}
+            prompts = request_prompts()
+            return {"prompts": prompts}
+        else:
+            return {"prompts":["Prompt 1", "Prompt 2", "Prompt 3"]}
     except:
         return {"message": "An error occurred", "status": 500}
     
+@app.post("/prompt")
+def save_prompt():
+    if not request.form["prompt"]:
+        return {"message": "Bad request", "status": 400}
+    result = save_prompt_db(request.form["prompt"])
+    return {"prompt":result}
+
 @app.post("/image")
 def generate_image():
     if not request.form["prompt"] and not int(request.form["prompt_id"]):
         return {"message": "Bad request", "status": 400}
-    try:
-        if not TESTING:
-            image_url = request_image(request.form["prompt"])
-            filename = save_image(image_url)
-            write_image_db(filename, int(request.form["prompt_id"]))
-            return {"image": filename}
-        else:
-            return {"image": "default-image.png"}
-    except:
-        return {"message": "An error occurred", "status": 500}
+    
+    if not TESTING:
+        image_url = request_image(request.form["prompt"])
+        filename = save_image(image_url)
+        write_image_db(filename, int(request.form["prompt_id"]))
+        return {"image": filename}
+    else:
+        return {"image": "default-image.png"}
 
 @app.get("/prompt/<prompt_id>")
 def show_prompt(prompt_id):
     if not prompt_id:
         return {"message": "Bad request", "status": 400}
     
-    try:
-        prompt = retrieve_prompt(prompt_id)
-        return render_template("prompt.html.jinja", prompt=prompt)
-    except:
-        return {"message": "An error occurred", "status": 500}
+    prompt = retrieve_prompt(prompt_id)
+    return render_template("prompt.html.jinja", prompt=prompt)
 
 @app.get("/prompt/<prompt_id>/images")
 def show_images(prompt_id):
     if not prompt_id:
         return {"message": "Bad request", "status": 400}
     
-    try:
-        images = retrieve_images(prompt_id)
-        return {"images": images}
-    except:
-        return {"message": "An error occurred", "status": 500}
+    images = retrieve_images(prompt_id)
+    return {"images": images}
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    if isinstance(e, HTTPException):
+        response = e.get_response()
+        response["data"] = json.dumps({
+            "code":e.code,
+            "name":e.name,
+            "description":e.description
+            })
+        response["content_type"] = "application/json"
+        return response
+    else:
+        return {"message":"An error occured"}, 500
         
 def request_prompts():
-    con = get_db()
-    cur = con.cursor()
     try:
         completion = client.beta.chat.completions.parse(
             model="gpt-4o-mini",
@@ -94,14 +109,10 @@ def request_prompts():
             response_format=PromptData
         )
         raw_prompts = completion.choices[0].message.parsed.prompts
-        data = [(p, datetime.datetime.now()) for p in raw_prompts]
-        cur.executemany("INSERT INTO prompt VALUES(?, ?)", data)
-        con.commit()
+        return raw_prompts
     except Exception as e:
         print(e)
-        raise Exception("Exception in request_prompts")
-    finally:
-        con.close()
+        raise InternalServerError(original_exception = e)
 
 def request_image(prompt):
     response = client.images.generate(
@@ -125,7 +136,7 @@ def retrieve_prompts():
         return prompts
     except Exception as e:
         print(e)
-        raise Exception("Exception in retrieve_prompts")
+        raise InternalServerError(original_exception=e)
     finally:
         con.close()
 
@@ -142,10 +153,44 @@ def retrieve_prompt(prompt_id):
         return {"id":row["rowid"],"text":row["prompt"]}
     except Exception as e:
         print(e)
-        raise Exception("Exception in retrieve_prompt")
+        raise InternalServerError(original_exception=e)
     finally:
         con.close()
 
+def update_prompt(prompt):
+    con = get_db()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            "UPDATE prompt SET prompt = (?) WHERE rowid = (?)",
+            (prompt["id"], prompt["text"])
+        )
+        con.commit()
+    except Exception as e:
+        print(e)
+        raise InternalServerError(original_exception=e)
+    finally:
+        con.close()
+
+def save_prompt_db(text):
+    con = get_db()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO prompt VALUES(?,?)",
+            (text, datetime.datetime.now())
+            )
+        con.commit()
+        cur.execute("SELECT rowid, prompt FROM prompt ORDER BY rowid DESC")
+        row = cur.fetchone()
+        return {"id":row["rowid"],"text":row["prompt"]}
+    except Exception as e:
+        print(e)
+        raise InternalServerError(original_exception=e)
+    finally:
+        con.close()
+    
 def save_image(url):
     os.chdir("static\\assets\\images")
     image_dir = os.getcwd()
@@ -168,7 +213,7 @@ def write_image_db(filename, prompt_id):
         con.commit()
     except Exception as e:
         print(e)
-        raise Exception("Exception in write_image_db")
+        raise InternalServerError(original_exception=e)
     finally:
         con.close()
 
@@ -185,7 +230,7 @@ def retrieve_images(prompt_id):
         return [{"id":r["rowid"],"url":r["url"]} for r in rows]
     except Exception as e:
         print(e)
-        raise Exception("Exception in retrieve_images")
+        raise InternalServerError(original_exception=e)
     finally:
         con.close()
 

@@ -10,8 +10,22 @@
 
 <body>
   <h1>AI Emoji Generator</h1>
-  <button type="button" onclick="generatePrompts()">Generate Prompts</button>
-  <a href="/prompts">Use existing prompts</a>
+  <div>
+    <button type="button" onclick="navigate('/prompts')">Prompts</button>
+    <button type="button" onclick="navigate('/images')">Images</button>
+    <button type="button" id="generate_prompts" onclick="generatePrompts()">Generate New Prompts</button>
+  </div>
+  <div id="new_prompts">
+    <table>
+      <thead>
+        <tr>
+          <th>Text</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="new_prompts_body"></tbody>
+    </table>
+  </div>
 </body>
 
 </html>
