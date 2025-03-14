@@ -66,7 +66,7 @@ class ImageSection {
     if (result.ok) {
       const data = await result.json()
       const imgs = data.images.map(img => new ImageElem(img.id, img.url))
-      this.#images.push(...imgs)
+      this.#images.push(...imgs.map(img => img.id))
       imgs.forEach(img => this.#container.appendChild(img.img))
     } else {
       console.error(result)
@@ -99,6 +99,9 @@ class ImageElem {
   }
   get img() {
     return this.#img
+  }
+  get id() {
+    return this.#id
   }
 }
 
