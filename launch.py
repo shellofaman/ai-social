@@ -76,6 +76,15 @@ def show_prompt(prompt_id):
     prompt = retrieve_prompt(prompt_id)
     return render_template("prompt.html.jinja", prompt=prompt)
 
+@app.put("/prompt/<prompt_id>")
+def update_prompt(prompt_id):
+    if not prompt_id:
+        raise BadRequset()
+    if not request.form["text"]:
+        raise BadRequest()
+    prompt = update_prompt(prompt_id, request.form["text"])
+    return {"prompt": prompt}
+
 @app.get("/prompt/<prompt_id>/images")
 def show_images(prompt_id):
     if not prompt_id:
@@ -83,20 +92,6 @@ def show_images(prompt_id):
     
     images = retrieve_images(prompt_id)
     return {"images": images}
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    if isinstance(e, HTTPException):
-        response = e.get_response()
-        response["data"] = json.dumps({
-            "code":e.code,
-            "name":e.name,
-            "description":e.description
-            })
-        response["content_type"] = "application/json"
-        return response
-    else:
-        return {"message":"An error occured"}, 500
         
 def request_prompts():
     try:
@@ -157,15 +152,22 @@ def retrieve_prompt(prompt_id):
     finally:
         con.close()
 
-def update_prompt(prompt):
+def update_prompt(prompt_id, text):
     con = get_db()
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
     try:
         cur.execute(
             "UPDATE prompt SET prompt = (?) WHERE rowid = (?)",
-            (prompt["id"], prompt["text"])
+            (text, prompt_id)
         )
         con.commit()
+        cur.execute(
+            "SELECT rowid, prompt FROM prompt WHERE rowid = (?)",
+            (prompt_id)
+        )
+        row = cur.fetchone()
+        return {"id":row["rowid"],"text":row["prompt"]}
     except Exception as e:
         print(e)
         raise InternalServerError(original_exception=e)
@@ -180,7 +182,7 @@ def save_prompt_db(text):
         cur.execute(
             "INSERT INTO prompt VALUES(?,?)",
             (text, datetime.datetime.now())
-            )
+        )
         con.commit()
         cur.execute("SELECT rowid, prompt FROM prompt ORDER BY rowid DESC")
         row = cur.fetchone()

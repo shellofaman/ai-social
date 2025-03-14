@@ -14,10 +14,10 @@ function button(action, text) {
   button.onclick = action
   return button
 }
-function inputText(defaultText, changeMethod) {
+function inputText(defaultText, inputMethod) {
   const input = document.createElement("input")
   input.value = defaultText
-  input.onchange = changeMethod
+  input.oninput = inputMethod
   return input
 }
 

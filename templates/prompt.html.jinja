@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="{{ url_for('static', filename='js/prompt.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/prompt.js') }}" defer></script>
   <title>Edit Prompt</title>
 </head>
 
@@ -13,12 +13,13 @@
   <div>
     <label for="prompt">Prompt</label>
     <br />
-    <textarea id="prompt" name="prompt" rows="10" columns="125">{{ prompt.text }}</textarea>
+    <textarea id="prompt" name="prompt" rows="10" columns="125" oninput="changePrompt(this.value)">{{ prompt.text }}</textarea>
   </div>
-  <button type="button" data-id="{{ prompt.id }}">Save</button>
+  <button id="save_button" disabled="true" type="button" data-id="{{ prompt.id }}" onclick="savePrompt()">Save</button>
   <div>
     <button type="button" onclick="loadImages('{{ prompt.id }}')">Load images</button>
   </div>
+  <div id="image_container"></div>
 </body>
 
 </html>
