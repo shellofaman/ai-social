@@ -1,0 +1,52 @@
+:root {
+  --eeire-black: #1c1c1c;
+  --rich-black: #031926;
+  --mountbatten-pink: #a27e8e;
+  --platinum: #daddd8;
+  --alabaster: #ecebe4;
+  --anti-flash-white: #eef0f2;
+  --ghost-white: #fafaff;
+}
+
+body {
+  background-color: var(--anti-flash-white);
+  color: var(--rich-black);
+  max-width: 1028px;
+  margin: auto;
+  text-align: center;
+}
+
+button {
+  background-color: var(--platinum);
+  color: var(--eeire-black);
+  font-weight: bold;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: var(--mountbatten-pink);
+  color: var(--alabaster);
+}
+
+h1, h2, h3, h4, h5 {
+  color: var(--rich-black);
+}
+
+table {
+  width: 100%;
+}
+
+input {
+  background-color: var(--ghost-white);
+  color: var(--rich-black);
+  border: none;
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  width: 400px;
+}

@@ -8,11 +8,19 @@ async function savePrompt() {
   window.dispatchEvent(new CustomEvent("SavePrompt"))
 }
 
+function button(action, text) {
+  const button = document.createElement("button")
+  button.innerText = text
+  button.onclick = action
+  return button
+}
+
 class Prompt {
   #originalPrompt
   #prompt
   #saveButton
   #id
+  #imageSection
 
   constructor() {
     const promptElem = document.getElementById("prompt")
@@ -21,6 +29,7 @@ class Prompt {
     const saveElem = document.getElementById("save_button")
     this.#saveButton = saveElem
     this.#id = saveElem.dataset.id
+    this.#imageSection = new ImageSection(document.getElementById("image_container"), this.#id)
     window.addEventListener("ChangePrompt", this.#changePrompt)
     window.addEventListener("SavePrompt", this.#savePrompt)
   }
@@ -53,25 +62,39 @@ class Prompt {
 class ImageSection {
   #images = []
   #container
-  #loading = false
+  #promptId
 
-  constructor(element) {
+  constructor(element, promptId) {
     this.#container = element
+    this.#promptId = promptId
     window.addEventListener("LoadImages", this.#loadImages)
+    window.addEventListener("DeleteImage", this.#deleteImage)
   }
 
-  #loadImages = async ({ detail }) => {
-    this.#loading = true
-    const result = await fetch(`http://127.0.0.1:5000/prompt/${detail.id}/images`)
+  #loadImages = async () => {
+    const result = await fetch(`http://127.0.0.1:5000/prompt/${this.#promptId}/images`)
     if (result.ok) {
       const data = await result.json()
-      const imgs = data.images.map(img => new ImageElem(img.id, img.url))
-      this.#images.push(...imgs.map(img => img.id))
-      imgs.forEach(img => this.#container.appendChild(img.img))
+      const newImages = data.images.filter(i => !this.#images.includes(i.id))
+      const imgs = newImages.map(img => new ImageElem(img.id, img.url))
+      this.#images.push(...imgs)
+      this.#images.forEach(img => this.#container.appendChild(img.img))
     } else {
       console.error(result)
     }
-    this.#loading = false
+  }
+
+  #deleteImage = async ({ detail }) => {
+    const result = await fetch(`http://127.0.0.1:5000/prompt/${this.#promptId}/image/${detail.id}`, {
+      method: "DELETE",
+    })
+    if (result.ok) {
+      const imgIndex = this.#images.findIndex(img => img.id === detail.id)
+      const img = this.#images.splice(imgIndex, 1)[0]
+      img.deleteImage()
+    } else {
+      console.error(result)
+    }
   }
 
 }
@@ -80,7 +103,7 @@ class ImageElem {
   #url
   #width
   #height
-  #img
+  #imgContainer
   #id
 
   constructor(id, url) {
@@ -88,17 +111,26 @@ class ImageElem {
     this.#url = url
     this.#height = 1024 / 4
     this.#width = 1024 / 4
-    this.renderImage()
+    this.#renderImage()
   }
 
-  renderImage = () => {
-    this.#img = document.createElement("img")
-    this.#img.src = this.#url.includes("http") ? this.#url : `http://127.0.0.1:5000/static/assets/images/${this.#url}`
-    this.#img.width = this.#width
-    this.#img.height = this.#height
+  #renderImage = () => {
+    this.#imgContainer = document.createElement("div")
+    const img = document.createElement("img")
+    img.src = this.#url.includes("http") ? this.#url : `http://127.0.0.1:5000/static/assets/images/${this.#url}`
+    img.width = this.#width
+    img.height = this.#height
+    const deleteBtn = button(() => {
+      window.dispatchEvent(new CustomEvent("DeleteImage", { detail: { id: this.#id }}))
+    }, "Delete")
+    this.#imgContainer.appendChild(img)
+    this.#imgContainer.appendChild(deleteBtn)
+  }
+  deleteImage = () => {
+    this.#imgContainer.remove()
   }
   get img() {
-    return this.#img
+    return this.#imgContainer
   }
   get id() {
     return this.#id
@@ -107,6 +139,5 @@ class ImageElem {
 
 function main() {
   new Prompt()
-  new ImageSection(document.getElementById("image_container"))
 }
 main()
