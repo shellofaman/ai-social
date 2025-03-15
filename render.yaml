@@ -4,4 +4,4 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommmand: flask --app .\launch run
+    startCommand: flask --app .\launch run
