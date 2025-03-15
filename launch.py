@@ -101,6 +101,10 @@ def delete_image(prompt_id, image_id):
     image_url = delete_image_db(prompt_id, image_id)
     move_image(image_url)
     return {"id": image_id}
+
+@app.get("/authenticated")
+def auth_page():
+    return "Hello world"
         
 def request_prompts():
     try:
