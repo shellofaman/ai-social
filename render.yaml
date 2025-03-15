@@ -1,5 +1,5 @@
 services:
-  name: ai-social
+  name: aisocial
   type: web
   runtime: python
   plan: free
