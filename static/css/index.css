@@ -27,10 +27,16 @@ button {
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
-
 button:hover {
   background-color: var(--mountbatten-pink);
   color: var(--alabaster);
+}
+button:disabled {
+  background-color: var(--anti-flash-white);
+}
+button:disabled:hover {
+  background-color: var(--anti-flash-white);
+  color: var(--eeire-black);
 }
 
 h1, h2, h3, h4, h5 {
@@ -39,6 +45,18 @@ h1, h2, h3, h4, h5 {
 
 table {
   width: 100%;
+  border-spacing: 2px;
+  border: 2px solid var(--platinum);
+}
+thead tr {
+  background-color: var(--alabaster);
+}
+th {
+  font-size: 20px;
+  font-weight: bold;
+}
+tbody tr:nth-child(even) {
+  background-color: var(--alabaster);
 }
 
 input {
@@ -49,4 +67,10 @@ input {
   border-radius: 10px;
   font-size: 12px;
   width: 400px;
+}
+tr:nth-child(even) input:disabled {
+  background-color: var(--alabaster);
+}
+tr:nth-child(odd) input:disabled {
+  background-color: var(--anti-flash-white);
 }
