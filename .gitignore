@@ -5,6 +5,7 @@
 database.db
 querys.sql
 static/assets/images
+static/assets/images_deleted
 
 *.exe
 scripts/

@@ -5,9 +5,10 @@ from openai import OpenAI
 from pydantic import BaseModel
 from flask import g
 from flask import json
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, NotFound, BadRequest, InternalServerError
 import sqlite3
 import os
+import shutil
 import datetime
 import requests
 
@@ -92,6 +93,14 @@ def show_images(prompt_id):
     
     images = retrieve_images(prompt_id)
     return {"images": images}
+
+@app.delete("/prompt/<prompt_id>/image/<image_id>")
+def delete_image(prompt_id, image_id):
+    if not prompt_id or not image_id:
+        raise BadRequest()
+    image_url = delete_image_db(prompt_id, image_id)
+    move_image(image_url)
+    return {"id": image_id}
         
 def request_prompts():
     try:
@@ -235,6 +244,31 @@ def retrieve_images(prompt_id):
         raise InternalServerError(original_exception=e)
     finally:
         con.close()
+
+def delete_image_db(prompt_id, image_id):
+    con = get_db()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    try:
+        query = f"SELECT ROWID, url FROM image WHERE prompt_id = {prompt_id} AND ROWID = {image_id};"
+        result = cur.execute(query)
+        row = result.fetchone()
+        if row is None:
+            raise NotFound()
+        delete_query = f"DELETE FROM image WHERE ROWID = {image_id};"
+        cur.execute(delete_query)
+        con.commit()
+        return row["url"]
+    except Exception as e:
+        print(e)
+        raise InternalServerError(original_exception=e)
+    finally:
+        con.close()
+
+def move_image(url):
+    cur_destination = f"static\\assets\\images\\{url}"
+    new_destination = f"static\\assets\\images_deleted\\{url}"
+    shutil.move(cur_destination, new_destination)
 
 @app.teardown_appcontext
 def close_connection(exception):
