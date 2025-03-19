@@ -1,21 +1,26 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask import render_template
 from flask import request
+from flask import session
 from openai import OpenAI
 from pydantic import BaseModel
 from flask import g
 from flask import json
-from werkzeug.exceptions import HTTPException, NotFound, BadRequest, InternalServerError
+from werkzeug.exceptions import HTTPException, NotFound, BadRequest, InternalServerError, Unauthorized
 import sqlite3
 import os
 import shutil
 import datetime
 import requests
+import jwt
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SESSION_SECRET")
 client = OpenAI()
 TESTING = True
 DATABASE = "database.db"
+
+print("TODO: transition to SPA")
 
 class PromptData(BaseModel):
     prompts: list[str]
@@ -25,6 +30,41 @@ def get_db():
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
     return db
+
+def activate_session():
+    now = datetime.datetime.now()
+    expires_at = now + datetime.timedelta(hours=1)
+    print("TODO: destroy any unexpired tokens")
+    session["key"] = jwt.encode({ "exp": expires_at.timestamp() }, app.secret_key, algorithm="HS256")
+
+@app.before_request
+def before_request_func():
+    if check_url_rule(request.url_rule.rule):
+        return None
+    elif request.authorization is None:
+        raise Unauthorized()
+    elif request.authorization is not None:
+        try:
+            jwt.decode(request.authorization.token, app.secret_key, algorithms="HS256")
+        except Exception as e:
+            raise Unauthorized()
+
+def check_url_rule(rule):
+    if rule == "/login":
+        return True
+    if rule.startswith("/static/"):
+        if request.path.startswith("/static/js/") or request.path.startswith("/static/css/"):
+            return True
+            
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if not request.form["passcode"]:
+            raise BadRequest()
+        if request.form["passcode"] == os.getenv("PASSCODE"):
+            activate_session()
+            return {"token":session["key"]}, 201
+    return render_template("login.html")
 
 @app.get("/")
 def index():

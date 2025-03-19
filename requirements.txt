@@ -18,6 +18,7 @@ MarkupSafe==3.0.2
 openai==1.60.1
 pydantic==2.10.6
 pydantic_core==2.27.2
+PyJWT==2.10.1
 requests==2.32.3
 sniffio==1.3.1
 tqdm==4.67.1
