@@ -20,8 +20,6 @@ client = OpenAI()
 TESTING = True
 DATABASE = "database.db"
 
-print("TODO: transition to SPA")
-
 class PromptData(BaseModel):
     prompts: list[str]
 
@@ -55,16 +53,22 @@ def check_url_rule(rule):
     if rule.startswith("/static/"):
         if request.path.startswith("/static/js/") or request.path.startswith("/static/css/"):
             return True
+    if not rule.startswith("/api"):
+        return True
             
-@app.route("/login", methods=["GET", "POST"])
+@app.get("/login")
 def login():
-    if request.method == "POST":
-        if not request.form["passcode"]:
-            raise BadRequest()
-        if request.form["passcode"] == os.getenv("PASSCODE"):
-            activate_session()
-            return {"token":session["key"]}, 201
     return render_template("login.html")
+
+@app.post("/api/login")
+def api_login():
+    if not request.form["passcode"]:
+        raise BadRequest()
+    if request.form["passcode"] == os.getenv("PASSCODE"):
+        activate_session()
+        return {"token":session["key"]}, 201
+    else:
+        raise Unauthorized()
 
 @app.get("/")
 def index():
@@ -72,75 +76,76 @@ def index():
 
 @app.get("/prompts")
 def show_prompts():
-    try:
-        prompts_list = retrieve_prompts()
-        return render_template("prompts.html.jinja", prompts=prompts_list)
-    except:
-        return render_template("prompts.html.jinja", prompts=[])
+    return render_template("prompts.html.jinja")
 
-@app.post("/prompts")
-def generate_prompts():
-    try:
-        if not TESTING:
-            prompts = request_prompts()
-            return {"prompts": prompts}
-        else:
-            return {"prompts":["Prompt 1", "Prompt 2", "Prompt 3"]}
-    except:
-        return {"message": "An error occurred", "status": 500}
+@app.get("/api/prompts")
+def api_show_prompts():
+    prompts = retrieve_prompts()
+    return prompts, 200
+
+@app.post("/api/prompts")
+def api_generate_prompts():
+    if not TESTING:
+        prompts = request_prompts()
+        return {"prompts": prompts}, 201
+    else:
+        return {"prompts":["Prompt 1", "Prompt 2", "Prompt 3"]}, 201
     
-@app.post("/prompt")
-def save_prompt():
+@app.post("/api/prompt")
+def api_save_prompt():
     if not request.form["prompt"]:
-        return {"message": "Bad request", "status": 400}
+        raise BadRequest()
     result = save_prompt_db(request.form["prompt"])
-    return {"prompt":result}
+    return {"prompt":result}, 201
 
-@app.post("/image")
-def generate_image():
+@app.post("/api/image")
+def api_generate_image():
     if not request.form["prompt"] and not int(request.form["prompt_id"]):
-        return {"message": "Bad request", "status": 400}
-    
+        raise BadRequest()
     if not TESTING:
         image_url = request_image(request.form["prompt"])
         filename = save_image(image_url)
         write_image_db(filename, int(request.form["prompt_id"]))
-        return {"image": filename}
+        return {"image": filename}, 201
     else:
-        return {"image": "default-image.png"}
+        return {"image": "default-image.png"}, 201
 
 @app.get("/prompt/<prompt_id>")
 def show_prompt(prompt_id):
     if not prompt_id:
-        return {"message": "Bad request", "status": 400}
-    
-    prompt = retrieve_prompt(prompt_id)
-    return render_template("prompt.html.jinja", prompt=prompt)
+        raise BadRequest()
+    return render_template("prompt.html.jinja")
 
-@app.put("/prompt/<prompt_id>")
-def update_prompt(prompt_id):
+@app.get("/api/prompt/<prompt_id>")
+def api_show_prompt(prompt_id):
+    if not prompt_id:
+        raise BadRequest()
+    prompt = retrieve_prompt(prompt_id)
+    return prompt, 200
+
+@app.put("/api/prompt/<prompt_id>")
+def api_update_prompt(prompt_id):
     if not prompt_id:
         raise BadRequset()
     if not request.form["text"]:
         raise BadRequest()
     prompt = update_prompt(prompt_id, request.form["text"])
-    return {"prompt": prompt}
+    return {"prompt": prompt}, 200
 
-@app.get("/prompt/<prompt_id>/images")
-def show_images(prompt_id):
+@app.get("/api/prompt/<prompt_id>/images")
+def api_show_images(prompt_id):
     if not prompt_id:
-        return {"message": "Bad request", "status": 400}
-    
+        raise BadRequest()
     images = retrieve_images(prompt_id)
-    return {"images": images}
+    return {"images": images}, 200
 
-@app.delete("/prompt/<prompt_id>/image/<image_id>")
-def delete_image(prompt_id, image_id):
+@app.delete("/api/prompt/<prompt_id>/image/<image_id>")
+def api_delete_image(prompt_id, image_id):
     if not prompt_id or not image_id:
         raise BadRequest()
     image_url = delete_image_db(prompt_id, image_id)
     move_image(image_url)
-    return {"id": image_id}
+    return {"id": image_id}, 200
 
 @app.get("/authenticated")
 def auth_page():
@@ -160,7 +165,7 @@ def request_prompts():
         return raw_prompts
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception = e)
+        raise InternalServerError()
 
 def request_image(prompt):
     response = client.images.generate(
@@ -184,7 +189,7 @@ def retrieve_prompts():
         return prompts
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception=e)
+        raise InternalServerError()
     finally:
         con.close()
 
@@ -201,7 +206,7 @@ def retrieve_prompt(prompt_id):
         return {"id":row["rowid"],"text":row["prompt"]}
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception=e)
+        raise InternalServerError()
     finally:
         con.close()
 
@@ -223,7 +228,7 @@ def update_prompt(prompt_id, text):
         return {"id":row["rowid"],"text":row["prompt"]}
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception=e)
+        raise InternalServerError()
     finally:
         con.close()
 
@@ -242,7 +247,7 @@ def save_prompt_db(text):
         return {"id":row["rowid"],"text":row["prompt"]}
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception=e)
+        raise InternalServerError()
     finally:
         con.close()
     
@@ -268,7 +273,7 @@ def write_image_db(filename, prompt_id):
         con.commit()
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception=e)
+        raise InternalServerError()
     finally:
         con.close()
 
@@ -285,7 +290,7 @@ def retrieve_images(prompt_id):
         return [{"id":r["rowid"],"url":r["url"]} for r in rows]
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception=e)
+        raise InternalServerError()
     finally:
         con.close()
 
@@ -305,7 +310,7 @@ def delete_image_db(prompt_id, image_id):
         return row["url"]
     except Exception as e:
         print(e)
-        raise InternalServerError(original_exception=e)
+        raise InternalServerError()
     finally:
         con.close()
 

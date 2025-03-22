@@ -36,7 +36,7 @@ class PromptSection {
   }
 
   #generatePrompts = async (e) => {
-    const result = await fetch("http://127.0.0.1:5000/prompts", { method: "POST" })
+    const result = await fetch("http://127.0.0.1:5000/api/prompts", { method: "POST" })
     if (result.ok) {
       const data = await result.json()
       window.dispatchEvent(new CustomEvent("AddPrompts", {
@@ -71,7 +71,7 @@ class PromptSection {
     const prompt = this.prompts.find(p => p.id === e.detail)
     const data = new FormData()
     data.append("prompt", prompt.text)
-    const result = await fetch("http://127.0.0.1:5000/prompt", {
+    const result = await fetch("http://127.0.0.1:5000/api/prompt", {
       method: "POST",
       body: data
     })
