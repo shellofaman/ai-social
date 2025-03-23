@@ -18,16 +18,42 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SESSION_SECRET")
 client = OpenAI()
 TESTING = True
-DATABASE = "database.db"
-
-class PromptData(BaseModel):
-    prompts: list[str]
+DATABASE = os.getenv("DATABASE_PATH")
 
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
     return db
+
+def setup_database():
+    con = get_db()
+    cur = con.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS prompt (
+                prompt TEXT,
+                created_at TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS image (
+                url TEXT,
+                prompt_id INT,
+                created_at TEXT
+            )
+        """)
+        con.commit()
+    except Exception as e:
+        print(e)
+        raise InternalServerError()
+    finally:
+        con.close()
+with app.app_context():
+    setup_database()
+
+class PromptData(BaseModel):
+    prompts: list[str]
 
 def activate_session():
     now = datetime.datetime.now()
