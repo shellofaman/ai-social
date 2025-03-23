@@ -29,13 +29,17 @@ button {
 }
 button:hover {
   background-color: var(--mountbatten-pink);
-  color: var(--alabaster);
+  color: var(--eeire-black);
 }
 button:disabled {
   background-color: var(--anti-flash-white);
 }
 button:disabled:hover {
   background-color: var(--anti-flash-white);
+  color: var(--eeire-black);
+}
+button a {
+  text-decoration: none;
   color: var(--eeire-black);
 }
 

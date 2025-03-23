@@ -1,24 +1,10 @@
+import { sendRequest } from "./util.js"
+import { button, inputText } from "./components.js"
+
 const TESTING = false
 function generatePrompts() {
   const gEvent = new CustomEvent("GeneratePrompts")
   window.dispatchEvent(gEvent)
-}
-
-function navigate(path) {
-  window.location.href = path
-}
-
-function button(action, text) {
-  const button = document.createElement("button")
-  button.innerText = text
-  button.onclick = action
-  return button
-}
-function inputText(defaultText, inputMethod) {
-  const input = document.createElement("input")
-  input.value = defaultText
-  input.oninput = inputMethod
-  return input
 }
 
 class PromptSection {
@@ -36,14 +22,13 @@ class PromptSection {
   }
 
   #generatePrompts = async (e) => {
-    const result = await fetch("http://127.0.0.1:5000/api/prompts", { method: "POST" })
-    if (result.ok) {
-      const data = await result.json()
+    try {
+      const data = await sendRequest("/api/prompts", { method: "POST" })
       window.dispatchEvent(new CustomEvent("AddPrompts", {
         detail: data.prompts
       }))
-    } else {
-      console.error(result)
+    } catch (error) {
+      console.error(error)
     }
   }
   get nextId() {
@@ -71,15 +56,16 @@ class PromptSection {
     const prompt = this.prompts.find(p => p.id === e.detail)
     const data = new FormData()
     data.append("prompt", prompt.text)
-    const result = await fetch("http://127.0.0.1:5000/api/prompt", {
-      method: "POST",
-      body: data
-    })
-    if (result.ok) {
+    try {
+      await sendRequest("/api/prompt", {
+        method: "POST",
+        body: data
+      })
       prompt.toggleSaved()
+    } catch (error) {
+      console.error(error)
+    } finally {
       window.dispatchEvent(new CustomEvent("UpdateGenerateButton"))
-    } else {
-      console.error(result)
     }
   }
   #updateGenerateButton = (e) => {
@@ -161,6 +147,7 @@ class Prompt {
 }
 
 function main() {
+  document.getElementById("generate_prompts").addEventListener("click", generatePrompts)
   new PromptSection(document.getElementById("new_prompts_body"))
 }
 main()

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="{{ url_for('static', filename='js/index.js')}}" defer></script>
+  <script type="module" src="{{ url_for('static', filename='js/index.js')}}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
   <title>AI Generator</title>
 </head>
@@ -14,9 +14,9 @@
     <h1>AI Emoji Generator</h1>
   </div>
   <div>
-    <button type="button" class="rounded-full" onclick="navigate('/prompts')">Prompts</button>
-    <button type="button" class="rounded-full" onclick="navigate('/images')">Images</button>
-    <button type="button" class="rounded-full" id="generate_prompts" onclick="generatePrompts()">Generate New Prompts</button>
+    <button type="button" class="rounded-full"><a href="/prompts">Prompts</a></button>
+    <button type="button" class="rounded-full"><a href="/images">Images</a></button>
+    <button type="button" class="rounded-full" id="generate_prompts">Generate New Prompts</button>
   </div>
   <div id="new_prompts">
     <table>

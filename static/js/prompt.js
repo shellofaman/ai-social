@@ -1,19 +1,5 @@
-async function loadImages(id) {
-  window.dispatchEvent(new CustomEvent("LoadImages", { detail: { id } }))
-}
-async function changePrompt(value) {
-  window.dispatchEvent(new CustomEvent("ChangePrompt", { detail: { text: value }}))  
-}
-async function savePrompt() {
-  window.dispatchEvent(new CustomEvent("SavePrompt"))
-}
-
-function button(action, text) {
-  const button = document.createElement("button")
-  button.innerText = text
-  button.onclick = action
-  return button
-}
+import { sendRequest } from "./util.js"
+import { button } from "./components.js"
 
 class Prompt {
   #originalPrompt
@@ -23,20 +9,35 @@ class Prompt {
   #imageSection
 
   constructor() {
-    const promptElem = document.getElementById("prompt")
-    this.#originalPrompt = promptElem.value
-    this.#prompt = promptElem.value
-    const saveElem = document.getElementById("save_button")
-    this.#saveButton = saveElem
-    this.#id = saveElem.dataset.id
+    console.log(window.location)
+    const id = Number(window.location.pathname.split("/").pop())
+    if (isNaN(id)) {
+      console.error("Invalid prompt id")
+      return
+    }
+    this.#id = id
+    this.#saveButton = document.getElementById("save_button")
     this.#imageSection = new ImageSection(document.getElementById("image_container"), this.#id)
-    window.addEventListener("ChangePrompt", this.#changePrompt)
-    window.addEventListener("SavePrompt", this.#savePrompt)
+    this.#loadPrompt()
   }
 
-  #changePrompt = ({ detail }) => {
-    this.#prompt = detail.text
-    this.#saveButton.disabled = this.#prompt === this.#originalPrompt
+  #loadPrompt = async () => {
+    try {
+      const data = await sendRequest(`/api/prompt/${this.#id}`)
+      this.#originalPrompt = data.text
+      this.#prompt = data.text
+      const promptElem = document.getElementById("prompt")
+      promptElem.value = this.#originalPrompt
+      promptElem.oninput = (e) => {
+        this.#prompt = e.target.value
+        this.#saveButton.disabled = this.#prompt === this.#originalPrompt
+      }
+      this.#saveButton.disabled = this.#prompt === this.#originalPrompt
+      this.#saveButton.onclick = this.#savePrompt
+      document.getElementById("load_images_button").onclick = this.#imageSection.loadImages
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   #savePrompt = async () => {
@@ -44,16 +45,15 @@ class Prompt {
     this.#saveButton.disabled = true
     const formData = new FormData()
     formData.append("text", this.#prompt)
-    const result = await fetch(`http://127.0.0.1:5000/prompt/${this.#id}`, {
-      method: "PUT",
-      body: formData
-    })
-    if (result.ok) {
-      const data = await result.json()
-      this.#originalPrompt = data.prompt.text
-      this.#prompt = data.prompt.text
-    } else {
-      console.error(result)
+    try {
+      const data = await sendRequest(`/api/prompt/${this.#id}`, {
+        method: "PUT",
+        body: formData
+      })
+      this.#originalPrompt = data.text
+      this.#prompt = data.text
+    } catch (err) {
+      console.error(err)
       this.#saveButton.disabled = false
     }
   }
@@ -67,36 +67,33 @@ class ImageSection {
   constructor(element, promptId) {
     this.#container = element
     this.#promptId = promptId
-    window.addEventListener("LoadImages", this.#loadImages)
     window.addEventListener("DeleteImage", this.#deleteImage)
   }
 
-  #loadImages = async () => {
-    const result = await fetch(`http://127.0.0.1:5000/prompt/${this.#promptId}/images`)
-    if (result.ok) {
-      const data = await result.json()
-      const newImages = data.images.filter(i => !this.#images.includes(i.id))
+  loadImages = async () => {
+    try {
+      const data = await sendRequest(`/api/prompt/${this.#promptId}/images`)
+      const newImages = data.filter(i => !this.#images.includes(i.id))
       const imgs = newImages.map(img => new ImageElem(img.id, img.url))
       this.#images.push(...imgs)
       this.#images.forEach(img => this.#container.appendChild(img.img))
-    } else {
-      console.error(result)
+    } catch (err) {
+      console.error(err)
     }
   }
 
   #deleteImage = async ({ detail }) => {
-    const result = await fetch(`http://127.0.0.1:5000/prompt/${this.#promptId}/image/${detail.id}`, {
-      method: "DELETE",
-    })
-    if (result.ok) {
+    try {
+      await sendRequest(`/api/prompt/${this.#promptId}/image/${detail.id}`, {
+        method: "DELETE",
+      })
       const imgIndex = this.#images.findIndex(img => img.id === detail.id)
       const img = this.#images.splice(imgIndex, 1)[0]
       img.deleteImage()
-    } else {
-      console.error(result)
+    } catch (err) {
+      console.error(err)
     }
   }
-
 }
 
 class ImageElem {
@@ -117,7 +114,7 @@ class ImageElem {
   #renderImage = () => {
     this.#imgContainer = document.createElement("div")
     const img = document.createElement("img")
-    img.src = this.#url.includes("http") ? this.#url : `http://127.0.0.1:5000/static/assets/images/${this.#url}`
+    img.src = this.#url.includes("http") ? this.#url : `${window.location.origin}/static/assets/images/${this.#url}`
     img.width = this.#width
     img.height = this.#height
     const deleteBtn = button(() => {

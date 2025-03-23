@@ -60,7 +60,7 @@ def check_url_rule(rule):
 def login():
     return render_template("login.html")
 
-@app.post("/api/login")
+@app.post("/login")
 def api_login():
     if not request.form["passcode"]:
         raise BadRequest()
@@ -76,7 +76,7 @@ def index():
 
 @app.get("/prompts")
 def show_prompts():
-    return render_template("prompts.html.jinja")
+    return render_template("prompts.html")
 
 @app.get("/api/prompts")
 def api_show_prompts():
@@ -114,7 +114,7 @@ def api_generate_image():
 def show_prompt(prompt_id):
     if not prompt_id:
         raise BadRequest()
-    return render_template("prompt.html.jinja")
+    return render_template("prompt.html")
 
 @app.get("/api/prompt/<prompt_id>")
 def api_show_prompt(prompt_id):
@@ -130,14 +130,14 @@ def api_update_prompt(prompt_id):
     if not request.form["text"]:
         raise BadRequest()
     prompt = update_prompt(prompt_id, request.form["text"])
-    return {"prompt": prompt}, 200
+    return prompt, 200
 
 @app.get("/api/prompt/<prompt_id>/images")
 def api_show_images(prompt_id):
     if not prompt_id:
         raise BadRequest()
     images = retrieve_images(prompt_id)
-    return {"images": images}, 200
+    return images, 200
 
 @app.delete("/api/prompt/<prompt_id>/image/<image_id>")
 def api_delete_image(prompt_id, image_id):
@@ -145,7 +145,7 @@ def api_delete_image(prompt_id, image_id):
         raise BadRequest()
     image_url = delete_image_db(prompt_id, image_id)
     move_image(image_url)
-    return {"id": image_id}, 200
+    return image_id, 200
 
 @app.get("/authenticated")
 def auth_page():
