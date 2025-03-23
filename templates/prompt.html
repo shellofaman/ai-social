@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="{{ url_for('static', filename='js/prompt.js') }}" defer></script>
+  <title>Edit Prompt</title>
+</head>
+
+<body>
+  <h1>Edit Prompt</h1>
+  <div>
+    <label for="prompt">Prompt</label>
+    <br />
+    <textarea id="prompt" name="prompt" rows="10" columns="125"></textarea>
+  </div>
+  <button id="save_button" disabled="true" type="button">Save</button>
+  <div>
+    <button id="load_images_button" type="button">Load images</button>
+  </div>
+  <div id="image_container"></div>
+</body>
+
+</html>

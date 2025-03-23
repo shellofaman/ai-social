@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="{{ url_for('static', filename='js/prompts.js') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+  <title>Prompts</title>
+</head>
+
+<body>
+  <h1>Prompts</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Id</th>
+        <th>Text</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="prompts_body"></tbody>
+  </table>
+  </ul>
+</body>
+
+</html>
