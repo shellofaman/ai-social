@@ -10,6 +10,7 @@ static/assets/images_deleted
 *.exe
 scripts/
 pyvenv.cfg
+.aws/
 
 ### Flask ###
 instance/*

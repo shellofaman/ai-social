@@ -13,10 +13,12 @@ import shutil
 import datetime
 import requests
 import jwt
+import boto3
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SESSION_SECRET")
 client = OpenAI()
+s3 = boto3.resource("s3")
 TESTING = True
 DATABASE = os.getenv("DATABASE_PATH")
 
@@ -63,6 +65,9 @@ def activate_session():
 
 @app.before_request
 def before_request_func():
+    if request.url_rule is None:
+        print("No url rule")
+        return None
     if check_url_rule(request.url_rule.rule):
         return None
     elif request.authorization is None:
