@@ -36,6 +36,7 @@ export async function getStatus() {
 }
 
 export async function logout() {
+  await sendRequest("/api/logout", { method: "DELETE" })
   localStorage.removeItem("token")
   window.location.reload()
 }

@@ -184,6 +184,11 @@ def api_testing():
         session["TESTING"] = not session["TESTING"]
     return {"testing":session["TESTING"]}, 200
 
+@app.delete("/api/logout")
+def api_logout():
+    session.clear()
+    return {"message":"Logged out"}, 200
+
 @app.get("/authenticated")
 def auth_page():
     return "Hello world"
