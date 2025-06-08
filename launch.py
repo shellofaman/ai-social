@@ -14,11 +14,12 @@ import datetime
 import requests
 import jwt
 import boto3
+import base64
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SESSION_SECRET")
 client = OpenAI()
-s3 = boto3.resource("s3")
+s3 = boto3.client("s3")
 DATABASE = os.getenv("DATABASE_PATH")
 
 def get_db():
@@ -214,7 +215,6 @@ def request_image(prompt):
         model="dall-e-2",
         prompt=prompt,
         size="1024x1024",
-        quality="standard",
         n=1
     )
     return response.data[0].url
@@ -294,14 +294,16 @@ def save_prompt_db(text):
         con.close()
     
 def save_image(url):
-    os.chdir("static\\assets\\images")
-    image_dir = os.getcwd()
+    # os.chdir("static\\assets\\images")
+    # image_dir = os.getcwd()
     time = datetime.datetime.now()
     filename = "image-" + time.strftime("%Y-%m-%dT%H-%M-%S") + ".png"
     image = requests.get(url).content
-    with open(filename, "wb") as f:
-        f.write(image)
-    os.chdir("../../../")
+    bucket = os.getenv("S3_BUCKET")
+    s3.put_object(Bucket=bucket, Key="images/" + filename, Body=image)
+    # with open(filename, "wb") as f:
+    #     f.write(image)
+    # os.chdir("../../../")
     return filename
 
 def write_image_db(filename, prompt_id):
@@ -329,7 +331,14 @@ def retrieve_images(prompt_id):
             (prompt_id)
         )
         rows = query.fetchall()
-        return [{"id":r["rowid"],"url":r["url"]} for r in rows]
+        images = []
+        bucket = os.getenv("S3_BUCKET")
+        for row in rows:
+            key = "images/" + row["url"]
+            image_data = s3.get_object(Bucket=bucket, Key=key)
+            image_binary = base64.b64encode(image_data["Body"].read()).decode("utf-8")
+            images.append({"id":row["rowid"],"binary":image_binary})
+        return images
     except Exception as e:
         print(e)
         raise InternalServerError()

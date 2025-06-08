@@ -9,7 +9,6 @@ class Prompt {
   #imageSection
 
   constructor() {
-    console.log(window.location)
     const id = Number(window.location.pathname.split("/").pop())
     if (isNaN(id)) {
       console.error("Invalid prompt id")
@@ -17,7 +16,7 @@ class Prompt {
     }
     this.#id = id
     this.#saveButton = document.getElementById("save_button")
-    this.#imageSection = new ImageSection(document.getElementById("image_container"), this.#id)
+    this.#imageSection = new ImageSection(document.getElementById("saved_images"), this.#id)
     this.#loadPrompt()
   }
 
@@ -35,6 +34,7 @@ class Prompt {
       this.#saveButton.disabled = this.#prompt === this.#originalPrompt
       this.#saveButton.onclick = this.#savePrompt
       document.getElementById("load_images_button").onclick = this.#imageSection.loadImages
+      document.getElementById("generate_image_button").onclick = this.#generateImage
     } catch (err) {
       console.error(err)
     }
@@ -57,6 +57,21 @@ class Prompt {
       this.#saveButton.disabled = false
     }
   }
+
+  #generateImage = async () => {
+    const formData = new FormData()
+    formData.append("prompt_id", this.#id)
+    formData.append("prompt", this.#prompt)
+    try {
+      await sendRequest("/api/image", {
+        method: "POST",
+        body: formData
+      })
+      await this.#imageSection.loadImages()
+    } catch (err) {
+      console.error(err)
+    }
+  }
 }
 
 class ImageSection {
@@ -74,7 +89,7 @@ class ImageSection {
     try {
       const data = await sendRequest(`/api/prompt/${this.#promptId}/images`)
       const newImages = data.filter(i => !this.#images.includes(i.id))
-      const imgs = newImages.map(img => new ImageElem(img.id, img.url))
+      const imgs = newImages.map(img => new ImageElem(img.id, img.binary))
       this.#images.push(...imgs)
       this.#images.forEach(img => this.#container.appendChild(img.img))
     } catch (err) {
@@ -97,15 +112,15 @@ class ImageSection {
 }
 
 class ImageElem {
-  #url
+  #binary
   #width
   #height
   #imgContainer
   #id
 
-  constructor(id, url) {
+  constructor(id, binary) {
     this.#id = id
-    this.#url = url
+    this.#binary = binary
     this.#height = 1024 / 4
     this.#width = 1024 / 4
     this.#renderImage()
@@ -114,7 +129,7 @@ class ImageElem {
   #renderImage = () => {
     this.#imgContainer = document.createElement("div")
     const img = document.createElement("img")
-    img.src = this.#url.includes("http") ? this.#url : `${window.location.origin}/static/assets/images/${this.#url}`
+    img.src = `data:image/png;base64,${this.#binary}`
     img.width = this.#width
     img.height = this.#height
     const deleteBtn = button(() => {
