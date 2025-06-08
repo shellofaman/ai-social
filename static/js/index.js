@@ -1,5 +1,5 @@
-import { sendRequest } from "./util.js"
-import { button, inputText } from "./components.js"
+import { sendRequest, isLoggedIn, logout } from "./util.js"
+import { button, inputText, statusBar, nav } from "./components.js"
 
 const TESTING = false
 function generatePrompts() {
@@ -147,7 +147,21 @@ class Prompt {
 }
 
 function main() {
-  document.getElementById("generate_prompts").addEventListener("click", generatePrompts)
-  new PromptSection(document.getElementById("new_prompts_body"))
+  const loginButton = document.getElementById("login_button")
+  isLoggedIn().then(r => {
+    if (r) {
+      loginButton.innerText = "Logout"
+      loginButton.onclick = logout
+      statusBar()
+      nav(["prompts", "images", "generate_prompts"])
+      document.getElementById("generate_prompts").addEventListener("click", generatePrompts)
+      new PromptSection(document.getElementById("new_prompts_body"))
+    } else {
+      loginButton.innerText = "Login"
+      loginButton.onclick = () => {
+        window.location.href = "/login"
+      }
+    }
+  })
 }
 main()

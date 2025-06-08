@@ -1,5 +1,5 @@
-import { sendRequest } from "./util.js"
-import { button } from "./components.js"
+import { sendRequest, isLoggedIn, logout } from "./util.js"
+import { button, statusBar, nav } from "./components.js"
 
 function navigate(path) {
   window.location.href = path
@@ -63,6 +63,15 @@ class Prompt {
 }
 
 function main() {
-  new PromptsList()
+  isLoggedIn().then(r => {
+    if (!r) {
+      window.location.href = "/login"
+    } else {
+      document.getElementById("logout_button").onclick = logout
+      statusBar()
+      nav(["home", "images"])
+      new PromptsList()
+    }
+  })
 }
 main()

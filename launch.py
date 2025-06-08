@@ -19,7 +19,6 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SESSION_SECRET")
 client = OpenAI()
 s3 = boto3.resource("s3")
-TESTING = True
 DATABASE = os.getenv("DATABASE_PATH")
 
 def get_db():
@@ -62,13 +61,11 @@ def activate_session():
     expires_at = now + datetime.timedelta(hours=1)
     print("TODO: destroy any unexpired tokens")
     session["key"] = jwt.encode({ "exp": expires_at.timestamp() }, app.secret_key, algorithm="HS256")
+    session["TESTING"] = True
 
 @app.before_request
 def before_request_func():
-    if request.url_rule is None:
-        print("No url rule")
-        return None
-    if check_url_rule(request.url_rule.rule):
+    if check_url_rule(request.url_rule):
         return None
     elif request.authorization is None:
         raise Unauthorized()
@@ -78,13 +75,16 @@ def before_request_func():
         except Exception as e:
             raise Unauthorized()
 
-def check_url_rule(rule):
-    if rule == "/login":
+def check_url_rule(urlObject):
+    if urlObject is None:
+        print("No url rule")
         return True
-    if rule.startswith("/static/"):
+    if urlObject.rule == "/login":
+        return True
+    if urlObject.rule.startswith("/static/"):
         if request.path.startswith("/static/js/") or request.path.startswith("/static/css/"):
             return True
-    if not rule.startswith("/api"):
+    if not urlObject.rule.startswith("/api"):
         return True
             
 @app.get("/login")
@@ -116,7 +116,7 @@ def api_show_prompts():
 
 @app.post("/api/prompts")
 def api_generate_prompts():
-    if not TESTING:
+    if session["TESTING"] == False:
         prompts = request_prompts()
         return {"prompts": prompts}, 201
     else:
@@ -133,7 +133,7 @@ def api_save_prompt():
 def api_generate_image():
     if not request.form["prompt"] and not int(request.form["prompt_id"]):
         raise BadRequest()
-    if not TESTING:
+    if session["TESTING"] == False:
         image_url = request_image(request.form["prompt"])
         filename = save_image(image_url)
         write_image_db(filename, int(request.form["prompt_id"]))
@@ -177,6 +177,12 @@ def api_delete_image(prompt_id, image_id):
     image_url = delete_image_db(prompt_id, image_id)
     move_image(image_url)
     return image_id, 200
+
+@app.route("/api/status", methods=["GET", "PUT"])
+def api_testing():
+    if request.method == "PUT":
+        session["TESTING"] = not session["TESTING"]
+    return {"testing":session["TESTING"]}, 200
 
 @app.get("/authenticated")
 def auth_page():

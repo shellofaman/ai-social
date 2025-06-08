@@ -15,9 +15,27 @@ export async function sendRequest(url, options = {}, useAuth = true) {
     const data = await result.json()
     return data
   } else {
-    if (result.status === 401) {
-      window.location.href = "/login"
-    }
     throw Error(result)
   }
+}
+
+export async function isLoggedIn() {
+  const token = localStorage.getItem("token")
+  if (!token) return false
+  try {
+    await sendRequest("/api/status")
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function getStatus() {
+  const data = await sendRequest("/api/status")
+  return data
+}
+
+export async function logout() {
+  localStorage.removeItem("token")
+  window.location.reload()
 }

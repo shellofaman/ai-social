@@ -1,0 +1,5 @@
+Make sure the following exists:
+DATABASE_PATH
+SESSION_SECRET
+OPENAI_API_KEY
+PASSCODE

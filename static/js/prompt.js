@@ -1,5 +1,5 @@
-import { sendRequest } from "./util.js"
-import { button } from "./components.js"
+import { sendRequest, isLoggedIn } from "./util.js"
+import { button, statusBar } from "./components.js"
 
 class Prompt {
   #originalPrompt
@@ -135,6 +135,13 @@ class ImageElem {
 }
 
 function main() {
-  new Prompt()
+  isLoggedIn().then(r => {
+    if (!r) {
+      window.location.href = "/login"
+    } else {
+      statusBar()
+      new Prompt()
+    }
+  })
 }
 main()
