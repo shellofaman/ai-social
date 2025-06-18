@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="{{ url_for('static', filename='js/post.js') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+  <title>Post</title>
+</head>
+<body>
+  <div id="status_bar">
+    <button type="button" id="logout_button">Logout</button>
+  </div>
+  <h1>Post</h1>
+  <div id="nav"></div>
+  <div id="post_container">
+    <div id="post_form">
+      <form id="post_form">
+        <img id="image_preview" width="256" height="256" />
+        <textarea required name="caption" id="caption" placeholder="Caption"></textarea>
+        <button type="button" id="post_button">Post</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

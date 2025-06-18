@@ -20,12 +20,18 @@ async function loadImages() {
     const urlCell = document.createElement("td")
     urlCell.textContent = d.url
     const actionsCell = document.createElement("td")
+
     const deleteButton = document.createElement("button")
     deleteButton.textContent = "Delete"
     deleteButton.onclick = () => console.log('delete', d.id)
+
     const postButton = document.createElement("button")
-    postButton.textContent = "Post"
-    postButton.onclick = () => console.log('post', d.id)
+    postButton.classList.add("anchor-button")
+    const postAnchor = document.createElement("a")
+    postAnchor.href = `/post/${d.id}`
+    postAnchor.textContent = "Post"
+    postButton.appendChild(postAnchor)
+
     actionsCell.appendChild(deleteButton)
     actionsCell.appendChild(postButton)
     row.appendChild(idCell)

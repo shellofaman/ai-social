@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, send_file
 from flask import render_template
 from flask import request
 from flask import session
@@ -80,7 +80,7 @@ def check_url_rule(urlObject):
     if urlObject is None:
         print("No url rule")
         return True
-    if urlObject.rule == "/login":
+    if urlObject.rule == "/login" or urlObject.rule.startswith("/images"):
         return True
     if urlObject.rule.startswith("/static/"):
         if request.path.startswith("/static/js/") or request.path.startswith("/static/css/"):
@@ -119,6 +119,19 @@ def show_prompt(prompt_id):
 @app.get("/images")
 def show_images():
     return render_template("images.html")
+
+@app.get("/images/<filename>")
+def show_image_file(filename):
+    image_path = os.path.join("images", filename)
+    if not os.path.exists(image_path):
+        raise NotFound()
+    return send_file(image_path, mimetype='image/png')
+
+@app.get("/post/<image_id>")
+def show_post(image_id):
+    if not image_id:
+        raise BadRequest()
+    return render_template("post.html")
 
 @app.get("/api/prompts")
 def api_show_prompts():
@@ -175,13 +188,20 @@ def api_show_images_for_prompt(prompt_id):
     images = retrieve_images(prompt_id)
     return images, 200
 
-@app.delete("/api/prompt/<prompt_id>/image/<image_id>")
-def api_delete_image(prompt_id, image_id):
-    if not prompt_id or not image_id:
+# @app.delete("/api/prompt/<prompt_id>/image/<image_id>")
+# def api_delete_image(prompt_id, image_id):
+#     if not prompt_id or not image_id:
+#         raise BadRequest()
+#     image_url = delete_image_db(prompt_id, image_id)
+#     move_image(image_url)
+#     return image_id, 200
+
+@app.get("/api/image/<image_id>")
+def api_show_image(image_id):
+    if not image_id:
         raise BadRequest()
-    image_url = delete_image_db(prompt_id, image_id)
-    move_image(image_url)
-    return image_id, 200
+    image = retrieve_image(image_id)
+    return image, 200
 
 @app.get("/api/images")
 def api_show_images():
@@ -192,7 +212,7 @@ def api_show_images():
 def api_post_image(image_id):
     if not image_id:
         raise BadRequest()
-    post_image(image_id)
+    post_instagram(image_id, request.form["caption"])
     return {"message":"Image posted"}, 200
 
 @app.route("/api/status", methods=["GET", "PUT"])
@@ -310,16 +330,11 @@ def save_prompt_db(text):
         con.close()
     
 def save_image(url):
-    # os.chdir("static\\assets\\images")
-    # image_dir = os.getcwd()
     time = datetime.datetime.now()
     filename = "image-" + time.strftime("%Y-%m-%dT%H-%M-%S") + ".png"
     image = requests.get(url).content
     bucket = os.getenv("S3_BUCKET")
     s3.put_object(Bucket=bucket, Key="images/" + filename, Body=image)
-    # with open(filename, "wb") as f:
-    #     f.write(image)
-    # os.chdir("../../../")
     return filename
 
 def write_image_db(filename, prompt_id):
@@ -331,6 +346,27 @@ def write_image_db(filename, prompt_id):
             (filename, prompt_id, datetime.datetime.now())
         )
         con.commit()
+    except Exception as e:
+        print(e)
+        raise InternalServerError()
+    finally:
+        con.close()
+
+def retrieve_image(image_id, format="base64"):
+    con = get_db()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    try:
+        query = cur.execute("SELECT ROWID, url FROM image WHERE ROWID = (?)", (image_id))
+        row = query.fetchone()
+        bucket = os.getenv("S3_BUCKET")
+        key = "images/" + row["url"]
+        image_data = s3.get_object(Bucket=bucket, Key=key)
+        if format == "base64":
+            image = base64.b64encode(image_data["Body"].read()).decode("utf-8")
+            return {"base64":image,"url":row["url"]}
+        elif format == "binary":
+            return {"binary":image_data["Body"].read(),"url":row["url"]}
     except Exception as e:
         print(e)
         raise InternalServerError()
@@ -352,8 +388,8 @@ def retrieve_images(prompt_id):
         for row in rows:
             key = "images/" + row["url"]
             image_data = s3.get_object(Bucket=bucket, Key=key)
-            image_binary = base64.b64encode(image_data["Body"].read()).decode("utf-8")
-            images.append({"id":row["rowid"],"binary":image_binary})
+            image_base64 = base64.b64encode(image_data["Body"].read()).decode("utf-8")
+            images.append({"id":row["rowid"],"base64":image_base64})
         return images
     except Exception as e:
         print(e)
@@ -398,10 +434,24 @@ def delete_image_db(prompt_id, image_id):
     finally:
         con.close()
 
-def move_image(url):
-    cur_destination = f"static\\assets\\images\\{url}"
-    new_destination = f"static\\assets\\images_deleted\\{url}"
-    shutil.move(cur_destination, new_destination)
+# def move_image(url):
+#     cur_destination = f"static\\assets\\images\\{url}"
+#     new_destination = f"static\\assets\\images_deleted\\{url}"
+#     shutil.move(cur_destination, new_destination)
+
+def post_instagram(image_id, caption):
+    try:
+        image = retrieve_image(image_id, format="binary")
+        url = host_image(image["url"], image["binary"])
+        print(url)
+    except Exception as e:
+        print(e)
+        raise InternalServerError()
+
+def host_image(url, image_binary):
+    with open(f"images\\{url}", "wb") as f:
+        f.write(image_binary)
+    return f"https://{os.getenv('HOST')}/images/{url}"
 
 @app.teardown_appcontext
 def close_connection(exception):

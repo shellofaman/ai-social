@@ -89,7 +89,7 @@ class ImageSection {
     try {
       const data = await sendRequest(`/api/prompt/${this.#promptId}/images`)
       const newImages = data.filter(i => !this.#images.includes(i.id))
-      const imgs = newImages.map(img => new ImageElem(img.id, img.binary))
+      const imgs = newImages.map(img => new ImageElem(img.id, img.base64))
       this.#images.push(...imgs)
       this.#images.forEach(img => this.#container.appendChild(img.img))
     } catch (err) {
@@ -112,15 +112,15 @@ class ImageSection {
 }
 
 class ImageElem {
-  #binary
+  #base64
   #width
   #height
   #imgContainer
   #id
 
-  constructor(id, binary) {
+  constructor(id, base64) {
     this.#id = id
-    this.#binary = binary
+    this.#base64 = base64
     this.#height = 1024 / 4
     this.#width = 1024 / 4
     this.#renderImage()
@@ -129,7 +129,7 @@ class ImageElem {
   #renderImage = () => {
     this.#imgContainer = document.createElement("div")
     const img = document.createElement("img")
-    img.src = `data:image/png;base64,${this.#binary}`
+    img.src = `data:image/png;base64,${this.#base64}`
     img.width = this.#width
     img.height = this.#height
     const deleteBtn = button(() => {
