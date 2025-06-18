@@ -110,6 +110,16 @@ def index():
 def show_prompts():
     return render_template("prompts.html")
 
+@app.get("/prompt/<prompt_id>")
+def show_prompt(prompt_id):
+    if not prompt_id:
+        raise BadRequest()
+    return render_template("prompt.html")
+
+@app.get("/images")
+def show_images():
+    return render_template("images.html")
+
 @app.get("/api/prompts")
 def api_show_prompts():
     prompts = retrieve_prompts()
@@ -142,12 +152,6 @@ def api_generate_image():
     else:
         return {"image": "default-image.png"}, 201
 
-@app.get("/prompt/<prompt_id>")
-def show_prompt(prompt_id):
-    if not prompt_id:
-        raise BadRequest()
-    return render_template("prompt.html")
-
 @app.get("/api/prompt/<prompt_id>")
 def api_show_prompt(prompt_id):
     if not prompt_id:
@@ -165,7 +169,7 @@ def api_update_prompt(prompt_id):
     return prompt, 200
 
 @app.get("/api/prompt/<prompt_id>/images")
-def api_show_images(prompt_id):
+def api_show_images_for_prompt(prompt_id):
     if not prompt_id:
         raise BadRequest()
     images = retrieve_images(prompt_id)
@@ -178,6 +182,18 @@ def api_delete_image(prompt_id, image_id):
     image_url = delete_image_db(prompt_id, image_id)
     move_image(image_url)
     return image_id, 200
+
+@app.get("/api/images")
+def api_show_images():
+    images = retrieve_all_images()
+    return images, 200
+
+@app.post("/api/post/<image_id>")
+def api_post_image(image_id):
+    if not image_id:
+        raise BadRequest()
+    post_image(image_id)
+    return {"message":"Image posted"}, 200
 
 @app.route("/api/status", methods=["GET", "PUT"])
 def api_testing():
@@ -338,6 +354,23 @@ def retrieve_images(prompt_id):
             image_data = s3.get_object(Bucket=bucket, Key=key)
             image_binary = base64.b64encode(image_data["Body"].read()).decode("utf-8")
             images.append({"id":row["rowid"],"binary":image_binary})
+        return images
+    except Exception as e:
+        print(e)
+        raise InternalServerError()
+    finally:
+        con.close()
+
+def retrieve_all_images():
+    con = get_db()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    images = []
+    try:
+        query = cur.execute("SELECT ROWID, url, prompt_id FROM image ORDER BY created_at")
+        rows = query.fetchall()
+        for row in rows:
+            images.append({"id":row["rowid"],"url":row["url"],"prompt_id":row["prompt_id"]})
         return images
     except Exception as e:
         print(e)

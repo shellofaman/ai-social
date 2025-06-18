@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="{{ url_for('static', filename='js/images.js') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+  <title>Images</title>
+</head>
+
+<body>
+  <div id="status_bar">
+    <button type="button" id="logout_button">Logout</button>
+  </div>
+  <h1>Images</h1>
+  <div id="nav"></div>
+  <table>
+    <thead>
+      <tr>
+        <th>Id</th>
+        <th>Prompt Id</th>
+        <th>Name</th>
+        <th>Options</th>
+      </tr>
+    </thead>
+    <tbody id="images_body"></tbody>
+  </table>
+  </ul>
+</body>
+
+</html>

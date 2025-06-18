@@ -15,7 +15,7 @@ export async function sendRequest(url, options = {}, useAuth = true) {
     const data = await result.json()
     return data
   } else {
-    throw Error(result)
+    throw Error(await result.json())
   }
 }
 
