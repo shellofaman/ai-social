@@ -441,17 +441,33 @@ def delete_image_db(prompt_id, image_id):
 
 def post_instagram(image_id, caption):
     try:
-        image = retrieve_image(image_id, format="binary")
-        url = host_image(image["url"], image["binary"])
-        print(url)
+        image_url = get_image_url(image_id)
+        signed_url = get_signed_url(image_url)
+        print(signed_url)
     except Exception as e:
         print(e)
         raise InternalServerError()
 
-def host_image(url, image_binary):
-    with open(f"images\\{url}", "wb") as f:
-        f.write(image_binary)
-    return f"https://{os.getenv('HOST')}/images/{url}"
+def get_image_url(image_id):
+    con = get_db()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    try:
+        query = cur.execute("SELECT ROWID, url FROM image WHERE ROWID = (?)", (image_id))
+        row = query.fetchone()
+        return row["url"]
+    except Exception as e:
+        print(e)
+        raise InternalServerError()
+    finally:
+        con.close()
+
+def get_signed_url(url):
+    return s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": os.getenv("S3_BUCKET"), "Key": "images/" + url},
+        ExpiresIn=300
+    )
 
 @app.teardown_appcontext
 def close_connection(exception):
