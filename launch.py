@@ -357,7 +357,7 @@ def retrieve_image(image_id, format="base64"):
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     try:
-        query = cur.execute("SELECT ROWID, url FROM image WHERE ROWID = (?)", (image_id))
+        query = cur.execute("SELECT ROWID, url FROM image WHERE ROWID = (?)", (image_id,))
         row = query.fetchone()
         bucket = os.getenv("S3_BUCKET")
         key = "images/" + row["url"]
@@ -443,17 +443,36 @@ def post_instagram(image_id, caption):
     try:
         image_url = get_image_url(image_id)
         signed_url = get_signed_url(image_url)
-        print(signed_url)
+        container_id = create_container(signed_url, caption)
+        publish_container(container_id)
     except Exception as e:
         print(e)
         raise InternalServerError()
+
+def create_container(image_url, caption):
+    instagram_id = os.getenv("INSTAGRAM_ID")
+    access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+    headers = { "Authorization": f"Bearer {access_token}", "Content-Type": "application/json" }
+    url = f"https://graph.instagram.com/v23.0/{instagram_id}/media"
+    response = requests.post(url, headers=headers, json={"image_url":image_url, "caption":caption})
+    print(response.json())
+    return response.json()["id"]
+
+def publish_container(container_id):
+    instagram_id = os.getenv("INSTAGRAM_ID")
+    access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+    headers = { "Authorization": f"Bearer {access_token}", "Content-Type": "application/json" }
+    url = f"https://graph.instagram.com/v23.0/{instagram_id}/media_publish"
+    response = requests.post(url, headers=headers, json={"creation_id":container_id})
+    print(response.json())
+    return response.json()["id"]
 
 def get_image_url(image_id):
     con = get_db()
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     try:
-        query = cur.execute("SELECT ROWID, url FROM image WHERE ROWID = (?)", (image_id))
+        query = cur.execute("SELECT ROWID, url FROM image WHERE ROWID = (?)", (image_id,))
         row = query.fetchone()
         return row["url"]
     except Exception as e:

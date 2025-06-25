@@ -5,7 +5,7 @@ import { nav, statusBar } from "./components.js"
 async function loadImage(image_id) {
   const image = await sendRequest(`/api/image/${image_id}`, { method: "GET" })
   const image_element = document.getElementById("image_preview")
-  image_element.src = `data:image/png;base64,${image.base64}`
+  image_element.src = `data:image/jpeg;base64,${image.base64}`
   
   const button = document.getElementById("post_button")
   button.onclick = async () => {
