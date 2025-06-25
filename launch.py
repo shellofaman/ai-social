@@ -331,10 +331,10 @@ def save_prompt_db(text):
     
 def save_image(url):
     time = datetime.datetime.now()
-    filename = "image-" + time.strftime("%Y-%m-%dT%H-%M-%S") + ".png"
+    filename = "image-" + time.strftime("%Y-%m-%dT%H-%M-%S") + ".jpg"
     image = requests.get(url).content
     bucket = os.getenv("S3_BUCKET")
-    s3.put_object(Bucket=bucket, Key="images/" + filename, Body=image)
+    s3.put_object(Bucket=bucket, Key="images/" + filename, Body=image, ContentType="image/jpeg")
     return filename
 
 def write_image_db(filename, prompt_id):

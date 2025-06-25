@@ -129,7 +129,7 @@ class ImageElem {
   #renderImage = () => {
     this.#imgContainer = document.createElement("div")
     const img = document.createElement("img")
-    img.src = `data:image/png;base64,${this.#base64}`
+    img.src = `data:image/jpeg;base64,${this.#base64}`
     img.width = this.#width
     img.height = this.#height
     const deleteBtn = button(() => {
