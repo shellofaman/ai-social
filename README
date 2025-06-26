@@ -1,5 +1,2 @@
-Make sure the following exists:
-DATABASE_PATH
-SESSION_SECRET
-OPENAI_API_KEY
-PASSCODE
+Next step:
+- Figure out new database solution.
